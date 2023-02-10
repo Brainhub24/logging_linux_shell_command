@@ -25,7 +25,7 @@ ID | Field | Channel
 # SET-UP
 
 1. Create a file named "e.g) history_log.sh" under the "/etc/profile.d/" directory and add the following code to it:
-```
+```bash
 #!/bin/bash
 
 function log_command {
@@ -63,7 +63,8 @@ local6.info        /var/log/command.log
 
 # result
 - example of /var/log/command.log
-```
+
+```bash
 # cat /var/log/command.log
 ..
 ...
