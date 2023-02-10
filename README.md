@@ -82,10 +82,10 @@ local6.info        /var/log/command.log
 .... buddy cmd_h1st[720889]: datetime='2023-02-11 07:18:47',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='systemctl restart rsyslog.service ',ps='[07:18:47][root@buddy]/root~# systemctl restart rsyslog.service '
 .... buddy cmd_h1st[720919]: datetime='2023-02-11 07:18:47',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='systemctl restart rsyslog.service ',ps='[07:18:47][root@buddy]/root~# systemctl restart rsyslog.service '
 .... buddy cmd_h1st[720949]: datetime='2023-02-11 07:18:47',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='systemctl restart rsyslog.service ',ps='[07:18:47][root@buddy]/root~# systemctl restart rsyslog.service '
-.... buddy cmd_h1st[720983]: datetime='2023-02-11 07:21:38',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/opc',cmd='sudo -i',ps='[07:21:38][opc@buddy]/home/opc~$ sudo -i'
-.... buddy cmd_h1st[721013]: datetime='2023-02-11 07:21:39',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/opc',cmd='sudo -i',ps='[07:21:39][opc@buddy]/home/opc~$ sudo -i'
-.... buddy cmd_h1st[721044]: datetime='2023-02-11 07:21:48',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/opc',cmd='ls -al /etc',ps='[07:21:48][opc@buddy]/home/opc~$ ls -al /etc'
-.... buddy cmd_h1st[721077]: datetime='2023-02-11 07:21:55',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/opc',cmd='df -h /var/log',ps='[07:21:55][opc@buddy]/home/opc~$ df -h /var/log'
+.... buddy cmd_h1st[720983]: datetime='2023-02-11 07:21:38',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/nara',cmd='sudo -i',ps='[07:21:38][nara@buddy]/home/nara~$ sudo -i'
+.... buddy cmd_h1st[721013]: datetime='2023-02-11 07:21:39',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/nara',cmd='sudo -i',ps='[07:21:39][nara@buddy]/home/nara~$ sudo -i'
+.... buddy cmd_h1st[721044]: datetime='2023-02-11 07:21:48',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/nara',cmd='ls -al /etc',ps='[07:21:48][nara@buddy]/home/nara~$ ls -al /etc'
+.... buddy cmd_h1st[721077]: datetime='2023-02-11 07:21:55',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/nara',cmd='df -h /var/log',ps='[07:21:55][nara@buddy]/home/nara~$ df -h /var/log'
 
 ```
 
