@@ -87,7 +87,7 @@ local7.notice       /var/log/command.log
 # systemctl restart rsyslog.service
 ```
 
-4. If you log out of the shell and log back in, you will see that the /var/log/command.log file has been created.
+5. If you log out of the shell and log back in, you will see that the /var/log/command.log file has been created.
 
 # result
 - example of /var/log/command.log
