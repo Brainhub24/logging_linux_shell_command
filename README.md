@@ -9,41 +9,63 @@ No any agents are required. Just set it up and you can distribute the configurat
 
 # Logging field information
 
-ID | Field | Channel
+no | field | description
 ----- | ----- | ----- 
-1 | time_now | current time
-2 | tme_hms | current time - hours/minutes/seconds
-3 | tty_number | Type and number of the current terminal session
-4 | user | current login username
-5 | is_root | current user is root or not
-6 | shell_status | check user prompt. if root "#", not root "$"
-7 | ip | IP address connecting from a remote
-8 | current_path |  the current working directory in the shell
-9 | command | the command entered in the shell.
-10 | ps | A custom field that is left in the same way as the PS status of the shell.
+1 | ctime_hms | The current time in the format of HH:MM:SS.
+2 | login_user | The username of the user who is currently logged in.
+3 | sudo_user | The username of the user who used sudo to run the command. If sudo wasn't used, set this variable to "null".
+4 | is_root | Whether the current user is the root user. If the current user is the root user, set this variable to "y". Otherwise, set it to "n".
+5 | shell_status | The command prompt symbol. If the current user is the root user, set this variable to "#". Otherwise, set it to "$".
+6 | remote_ip | he IP address of the remote host that the user logged in from.
+7 | pwd | The current working directory.
+8 | command | The command that was executed.
+9 | cmd_retn_code | The return code of the command that was executed.
+10 | cmd_pid | The process ID of the command that was executed.
+11 | sudo_chk | Whether the command that was executed used sudo. If the command used sudo, set this variable to "y". Otherwise, set it to "n".
+12 | sudo_with | Whether sudo was used to run the command. If the current user is the root user, set this variable to "y". Otherwise, set it to the value of sudo_chk.
+13 | ps | The command prompt string.
+
+# Variables in logging
+
+no | field | description
+----- | ----- | ----- 
+1 | datetime | The date and time when the command was executed.
+2 | tty | The terminal device name.
+3 | bash_pid | The process ID of the current bash shell.
+4 | type | The type of the log entry. "new_login" or "logged_in".
+5 | username | The username of the user who executed the command.
+6 | sudo_user | The username of the user who used sudo to run the command. If sudo wasn't used, this variable is set to "null".
+7 | root | Whether the current user is the root user. If the current user is the root user, this variable is set to "y". Otherwise, it's set to "n".
+8 | ip | The IP address of the remote host that the user logged in from.
+9 | pwd | The current working directory.
+10 | cmd | The command that was executed
 
 # SET-UP
 
 1. Create a file named "e.g) history_log.sh" under the "/etc/profile.d/" directory and add the following code to it:
 ```bash
-#!/bin/bash
+logger -p local7.notice -t cmd_h1st "datetime='$(date +"%Y-%m-%d %T")',tty='$(tty | cut -d '/' -f 3-4)',bash_pid='$$',type='new_login',username='$LOGNAME',message='$LOGNAME logged at $(date +"%Y-%m-%d %T") from $(tty | awk -F "/" '{print $3"/"$4}' | xargs -I % bash -c 'w | grep -i %' | awk '{print $3}')'"
 
 function log_command {
-    local time_now=$(date +"%Y-%m-%d %T")
-    local time_hms=$(date +"%T")
-    local tty_number=$(tty | cut -d '/' -f 4)
-    local user=$(whoami)
+    local ctime_hms=$(date +"%T")
+    local login_user=$(whoami)
+    local sudo_user=$([[ -z "$(echo $SUDO_USER)" ]] && echo "null" || echo "$SUDO_USER")
     local is_root=$([[ "$(id -u)" == "0" ]] && echo "y" || echo "n")
     local shell_status=$([[ "$(id -u)" == "0" ]] && echo "#" || echo "$")
-    local ip=$(tty | awk -F "/" '{print $3"/"$4}' | xargs -I % bash -c 'w | grep -i %' | awk '{print $3}')
-    local current_path=$(pwd)
-    local command=$@
-    local ps="[$time_hms][$user@$(hostname)]$current_path~$shell_status $command"
+    local remote_ip=$(tty | awk -F "/" '{print $3"/"$4}' | xargs -I % bash -c 'w | grep -i %' | awk '{print $3}')
+    local pwd=$(pwd)
+    local command="$1"
+    local cmd_retn_code="$2"
+    local cmd_pid="$3"
+    local sudo_chk=$(echo "$command" | grep -q "sudo" && echo "y" || echo "n")
+    local sudo_with=$([[ "$(id -u)" == "0" ]] && echo "y" || echo "$sudo_chk")
+    local ps="[$ctime_hms][$login_user@$(hostname)]$pwd~$shell_status $command"
 
-    logger -p local6.info -t cmd_h1st "datetime='$time_now',tty='$tty_number',user='$user',root='$is_root',ip='$ip',pwd='$current_path',cmd='$command',ps='$ps'"
+    logger -p local7.notice -t cmd_h1st "datetime='$(date +"%Y-%m-%d %T")',tty='$(tty | cut -d '/' -f 3-4)',bash_pid='$$',type='logged_in',username='$login_user',sudo_user='$sudo_user',root='$is_root',ip='$remote_ip',pwd='$pwd',cmd='$command',cmd_ret_code='$cmd_retn_code',cmd_pid='$cmd_pid',cmd_with_sudo='$sudo_with',ps='$ps'"
 }
 
-PROMPT_COMMAND='log_command "$(history 1 | sed "s/^[ ]*[0-9]\+[ ]*//")"'
+
+PROMPT_COMMAND='__ret="$?"; __cmd=$(history 1 | sed "s/^[ ]*[0-9]\+[ ]*//g"); __ppid=$(echo $$); __cpid=$(ps -o ppid= -o pid= | awk "\$1==${__ppid} {print \$2}"); log_command "${__cmd}" "${__ret}" "${__cpid}"'
 
 ```
 
@@ -51,7 +73,7 @@ PROMPT_COMMAND='log_command "$(history 1 | sed "s/^[ ]*[0-9]\+[ ]*//")"'
 ```
 # vim /etc/rsyslog.conf
 .....
-local6.info        /var/log/command.log
+local7.notice       /var/log/command.log
 ```
 
 3. Restart the rsyslog service to apply the changes.
@@ -66,26 +88,15 @@ local6.info        /var/log/command.log
 
 ```bash
 # cat /var/log/command.log
-..
 ...
-.....
 
-.... cmd_h1st[720030]: datetime='2023-02-11 00:16:27',tty='2',user='opc',root='n',ip='1*5.2**.*9.1**',pwd='/home/opc',cmd='sudo -i',ps='[00:16:27][opc@buddy]/home/opc~$ sudo -i'
-.... cmd_h1st[720061]: datetime='2023-02-11 00:16:29',tty='2',user='opc',root='n',ip='1*5.2**.*9.1**',pwd='/home/opc',cmd='env',ps='[00:16:29][opc@buddy]/home/opc~$ env'
-.... cmd_h1st[720093]: datetime='2023-02-11 00:17:12',tty='2',user='opc',root='n',ip='1*5.2**.*9.1**',pwd='/home/opc',cmd='ls',ps='[00:17:12][opc@buddy]/home/opc~$ ls'
-.... cmd_h1st[720659]: datetime='2023-02-11 07:16:51',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='exit',ps='[07:16:51][root@buddy]/root~# exit'
-.... cmd_h1st[720689]: datetime='2023-02-11 07:16:51',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='exit',ps='[07:16:51][root@buddy]/root~# exit'
-.... cmd_h1st[720719]: datetime='2023-02-11 07:16:52',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='exit',ps='[07:16:52][root@buddy]/root~# exit'
-.... cmd_h1st[720750]: datetime='2023-02-11 07:16:52',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='ll',ps='[07:16:52][root@buddy]/root~# ll'
-.... cmd_h1st[720797]: datetime='2023-02-11 07:18:14',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='vim /etc/rsyslog.conf ',ps='[07:18:14][root@buddy]/root~# vim /etc/rsyslog.conf '
-.... cmd_h1st[720827]: datetime='2023-02-11 07:18:16',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='history',ps='[07:18:16][root@buddy]/root~# history'
-.... cmd_h1st[720889]: datetime='2023-02-11 07:18:47',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='systemctl restart rsyslog.service ',ps='[07:18:47][root@buddy]/root~# systemctl restart rsyslog.service '
-.... cmd_h1st[720919]: datetime='2023-02-11 07:18:47',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='systemctl restart rsyslog.service ',ps='[07:18:47][root@buddy]/root~# systemctl restart rsyslog.service '
-.... cmd_h1st[720949]: datetime='2023-02-11 07:18:47',tty='2',user='root',root='y',ip='1*5.2**.*9.1**',pwd='/root',cmd='systemctl restart rsyslog.service ',ps='[07:18:47][root@buddy]/root~# systemctl restart rsyslog.service '
-.... cmd_h1st[720983]: datetime='2023-02-11 07:21:38',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/nara',cmd='sudo -i',ps='[07:21:38][nara@buddy]/home/nara~$ sudo -i'
-.... cmd_h1st[721013]: datetime='2023-02-11 07:21:39',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/nara',cmd='sudo -i',ps='[07:21:39][nara@buddy]/home/nara~$ sudo -i'
-.... cmd_h1st[721044]: datetime='2023-02-11 07:21:48',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/nara',cmd='ls -al /etc',ps='[07:21:48][nara@buddy]/home/nara~$ ls -al /etc'
-.... cmd_h1st[721077]: datetime='2023-02-11 07:21:55',tty='2',user='nara',root='n',ip='1*5.2**.*9.1**',pwd='/home/nara',cmd='df -h /var/log',ps='[07:21:55][nara@buddy]/home/nara~$ df -h /var/log'
+... cmd_h1st[987170]: datetime='2023-02-22 16:19:21',tty='pts/2',bash_pid='983421',type='logged_in',username='user1',sudo_user='null',root='n',ip='192.168.100.1',pwd='/home/user1',cmd='ps -ef',cmd_ret_code='0',cmd_pid='987133',cmd_with_sudo='n',ps='[16:19:21][user1@testwork9]/home/user1~$ ps -ef'
+... cmd_h1st[987213]: datetime='2023-02-22 16:19:22',tty='pts/2',bash_pid='983421',type='logged_in',username='user1',sudo_user='null',root='n',ip='192.168.100.1',pwd='/home/user1',cmd='ls -al',cmd_ret_code='0',cmd_pid='987176',cmd_with_sudo='n',ps='[16:19:22][user1@testwork9]/home/user1~$ ls -al'
+... cmd_h1st[987256]: datetime='2023-02-22 16:19:39',tty='pts/2',bash_pid='983421',type='logged_in',username='user1',sudo_user='null',root='n',ip='192.168.100.1',pwd='/home/user1',cmd='ls -al',cmd_ret_code='0',cmd_pid='987219',cmd_with_sudo='n',ps='[16:19:38][user1@testwork9]/home/user1~$ ls -al'
+... cmd_h1st[987299]: datetime='2023-02-22 16:19:40',tty='pts/2',bash_pid='983421',type='logged_in',username='user1',sudo_user='null',root='n',ip='192.168.100.1',pwd='/home/user1',cmd='w',cmd_ret_code='0',cmd_pid='987262',cmd_with_sudo='n',ps='[16:19:40][user1@testwork9]/home/user1~$ w'
+... cmd_h1st[987342]: datetime='2023-02-22 16:19:42',tty='pts/2',bash_pid='983421',type='logged_in',username='user1',sudo_user='null',root='n',ip='192.168.100.1',pwd='/home/user1',cmd='ps',cmd_ret_code='0',cmd_pid='987305',cmd_with_sudo='n',ps='[16:19:42][user1@testwork9]/home/user1~$ ps'
+... cmd_h1st[987387]: datetime='2023-02-22 16:19:46',tty='pts/2',bash_pid='983421',type='logged_in',username='user1',sudo_user='null',root='n',ip='192.168.100.1',pwd='/home/user1',cmd='cat /etc/shadow',cmd_ret_code='1',cmd_pid='987350',cmd_with_sudo='n',ps='[16:19:46][user1@testwork9]/home/user1~$ cat /etc/shadow'
+... cmd_h1st[987430]: datetime='2023-02-22 16:19:49',tty='pts/2',bash_pid='983421',type='logged_in',username='user1',sudo_user='null',root='n',ip='192.168.100.1',pwd='/home/user1',cmd='abcdefg',cmd_ret_code='127',cmd_pid='987393',cmd_with_sudo='n',ps='[16:19:49][user1@testwork9]/home/user1~$ abcdefg'
 
 ```
 
@@ -94,3 +105,4 @@ local6.info        /var/log/command.log
 - If necessary make additional fields and apply.
 - In case multiple users log in with the same username, we can individually identify who they are.
 - By default, when a user change level to root, their  IP address is lost, so making it impossible to recored the user's remote connection ip, but it is fine now. IP is recorded in all cases.
+- Final updated at 2023.02.22
