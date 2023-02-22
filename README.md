@@ -42,7 +42,13 @@ no | field | description
 
 # SET-UP
 
-1. Create a file named "e.g) history_log.sh" under the "/etc/profile.d/" directory and add the following code to it:
+1. Add the `HISTTIMEFORMAT` in the /etc/profile
+```bash
+HISTSIZE=2000
+HISTTIMEFORMAT="[%Y-%m-%d %H:%M:%S]  "
+```
+
+2. Create a file named "e.g) history_log.sh" under the "/etc/profile.d/" directory and add the following code to it:
 ```bash
 logger -p local7.notice -t cmd_h1st "datetime='$(date +"%Y-%m-%d %T")',tty='$(tty | cut -d '/' -f 3-4)',bash_pid='$$',type='new_login',username='$LOGNAME',message='$LOGNAME logged at $(date +"%Y-%m-%d %T") from $(tty | awk -F "/" '{print $3"/"$4}' | xargs -I % bash -c 'w | grep -i %' | awk '{print $3}')'"
 
@@ -54,7 +60,7 @@ function log_command {
     local shell_status=$([[ "$(id -u)" == "0" ]] && echo "#" || echo "$")
     local remote_ip=$(tty | awk -F "/" '{print $3"/"$4}' | xargs -I % bash -c 'w | grep -i %' | awk '{print $3}')
     local pwd=$(pwd)
-    local command="$1"
+    local command=$(echo "$1" | cut -f 4- -d ' ')
     local cmd_retn_code="$2"
     local cmd_pid="$3"
     local sudo_chk=$(echo "$command" | grep -q "sudo" && echo "y" || echo "n")
@@ -69,14 +75,14 @@ PROMPT_COMMAND='__ret="$?"; __cmd=$(history 1 | sed "s/^[ ]*[0-9]\+[ ]*//g"); __
 
 ```
 
-2. Open the "/etc/rsyslog.conf" file and add the configuration to save in local6.info format to the "/var/log/command.log" file.
+3. Open the "/etc/rsyslog.conf" file and add the configuration to save in local6.info format to the "/var/log/command.log" file.
 ```
 # vim /etc/rsyslog.conf
 .....
 local7.notice       /var/log/command.log
 ```
 
-3. Restart the rsyslog service to apply the changes.
+4. Restart the rsyslog service to apply the changes.
 ```
 # systemctl restart rsyslog.service
 ```
